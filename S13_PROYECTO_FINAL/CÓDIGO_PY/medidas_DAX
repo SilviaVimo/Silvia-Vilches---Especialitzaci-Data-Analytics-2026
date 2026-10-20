@@ -1,0 +1,94 @@
+PROYECTO: CLIENTES CON NOMBRE PROPIO - SEGMENTAR PARA CONQUISTAR
+
+SILVIA VILCHES
+
+MEDIDAS DAX POWER BI
+
+MEDIDAS GRAFICOS BASE CLIENTES/PERFIL
+Ventas = SUM (reservas[importe])
+Reservas = COUNTROWS (reservas)
+Clientes = DISTINCTCOUNT (reservas[id_cliente])
+Ticket medio = DIVIDE ( [Ventas], [Reservas] )
+
+
+MEDIDAS GRAFICOS CLIENTES
+% Recurrentes = AVERAGE (primera_compra[repite])
+% Una sola compra = DIVIDE ( CALCULATE (COUNTROWS (RFM), RFM[frecuencia] = 1), COUNTROWS (RFM))
+Mediana días 2ª compra = MEDIAN (primera_compra[dias_hasta_2a])
+Retención ponderada = DIVIDE (SUM(cohortes[clientes_activos]), SUM(cohortes[tamaño_cohorte]))
+Clientes elegibles 18m = CALCULATE (COUNTROWS(primera_compra), primera_compra[elegible_18m] = 1)
+% repite 18m = AVERAGE (primera_compra[repite_18m])
+
+
+
+Ventas recurrentes = CALCULATE ([Ventas], RFM[frecuencia] > 1)
+% Ventas recurrentes = DIVIDE ([Ventas recurrentes], [Ventas])
+Gasto medio recurrente = DIVIDE ([Ventas recurrentes], CALCULATE ( COUNTROWS ( RFM ), RFM[frecuencia] > 1 ) )
+Gasto medio una compra = DIVIDE (CALCULATE ( [Ventas], RFM[frecuencia] = 1), CALCULATE (COUNTROWS ( RFM ), RFM[frecuencia] = 1))
+
+
+TABLA AUXILIAR PARA MEDIDA DEL % DE CLIENTES QUE GENERAN EN X% DE VENTAS
+
+Comparativa_recurrentes =
+DATATABLE (
+    "Indicador", STRING,
+    "Grupo", STRING,
+    "Orden", INTEGER,
+    {
+        {"Clientes", "Una sola compra", 1},
+        {"Clientes", "Recurrentes", 2},
+        {"Ventas", "Una sola compra", 1},
+        {"Ventas", "Recurrentes", 2}
+    }
+)
+
+
+MEDIDAS GRAFICOS RFM/SEGMENTOS
+
+Clientes RFM = COUNTROWS (RFM)
+
+% Clientes RFM =
+DIVIDE ( [Clientes RFM], CALCULATE ([Clientes RFM], ALL ( RFM[segmento])))
+
+% Ventas RFM =
+DIVIDE ([Ventas], CALCULATE ([Ventas], ALL (RFM[segmento])))
+
+Valor medio cliente = AVERAGE (RFM[valor_monetario])
+
+
+
+
+MEDIDAS GRAFICOS ESTANDARIZADOS DATOS
+% Clientes grupo k5 =
+DIVIDE ( COUNTROWS (RFM), CALCULATE (COUNTROWS ( RFM), ALL (RFM[cluster_estandarizado])))
+
+% Ventas grupo k5 =
+DIVIDE ( [Ventas], CALCULATE ( [Ventas], ALL (RFM[cluster_estandarizado])))
+
+% del grupo =
+DIVIDE ( COUNTROWS (RFM), CALCULATE (COUNTROWS (RFM), ALL (RFM[segmento])))
+
+
+
+MEDIDAS GRAFICOS K-MEANS
+% Clientes k4 =
+DIVIDE ( COUNTROWS (RFM), CALCULATE ( COUNTROWS (RFM), ALL (RFM[cluster_nombre])))
+
+% Ventas k4 =
+DIVIDE ([Ventas], CALCULATE ([Ventas], ALL (RFM[cluster_nombre])))
+
+% Clientes élite + crecimiento =
+CALCULATE ( [% Clientes k4], RFM[cluster_nombre] IN {"Viajeros de élite", "Viajeros en crecimiento" } )
+
+% Ventas élite + crecimiento =
+CALCULATE ([% Ventas k4], RFM[cluster_nombre] IN {"Viajeros de élite", "Viajeros en crecimiento"})
+
+
+MEDIDAD PLAN
+% repite 18m (global) =
+CALCULATE ( [% repite 18m]; REMOVEFILTERS (primera_compra[tramo_descuento]))
+
+Descuento medio 1ª compra = AVERAGE (primera_compra[descuento_primera_compra_pct])
+
+Captación ventana 18m =
+CALCULATE ( MAX ( tabla_ventanas[pct_repeticiones_capturadas]); tabla_ventanas[ventana_meses] = 18)
